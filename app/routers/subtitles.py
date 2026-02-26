@@ -10,7 +10,10 @@ from app.schemas import SubtitleRequest, SubtitleResponse, TranslateRequest, Tra
 from app.services.downloader import extract_video_id, download_subtitles, get_video_info
 from app.services.parser import parse_subtitle_file
 from app.services.translator import translate_subtitles_stream
-from app.services.supabase_client import save_translation, get_translations, get_history, delete_translation
+from app.services.supabase_client import (
+    save_translation, get_translations, get_history,
+    delete_translation, toggle_favorite,
+)
 
 router = APIRouter(prefix="/api", tags=["subtitles"])
 
@@ -25,13 +28,11 @@ async def get_subtitles(req: SubtitleRequest):
 
     loop = get_event_loop()
 
-    # 영상 정보 추출
     try:
         info = await loop.run_in_executor(None, get_video_info, video_id)
     except Exception:
         info = {"title": "", "duration": 0}
 
-    # 자막 다운로드
     try:
         sub_file, fmt = await loop.run_in_executor(None, download_subtitles, video_id)
     except FileNotFoundError:
@@ -39,13 +40,11 @@ async def get_subtitles(req: SubtitleRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to download subtitles: {e}")
 
-    # 자막 파싱
     try:
         subtitles = parse_subtitle_file(sub_file, fmt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to parse subtitles: {e}")
     finally:
-        # 임시 디렉토리 정리
         shutil.rmtree(sub_file.parent, ignore_errors=True)
 
     return SubtitleResponse(
@@ -88,7 +87,8 @@ class SaveRequest(BaseModel):
     video_id: str
     title: str
     provider: str
-    subtitles: list[dict]
+    subtitles: list
+    thumbnail_url: str = ""
 
 
 @router.post("/save")
@@ -97,7 +97,7 @@ async def save(req: SaveRequest):
     loop = get_event_loop()
     try:
         result = await loop.run_in_executor(
-            None, save_translation, req.video_id, req.title, req.provider, req.subtitles
+            None, save_translation, req.video_id, req.title, req.provider, req.subtitles, req.thumbnail_url
         )
         return {"ok": True, "data": result}
     except Exception as e:
@@ -120,8 +120,23 @@ async def history():
     """최근 번역 히스토리를 가져온다."""
     loop = get_event_loop()
     try:
-        data = await loop.run_in_executor(None, get_history, 30)
+        data = await loop.run_in_executor(None, get_history, 50)
         return {"ok": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class FavoriteRequest(BaseModel):
+    is_favorite: bool
+
+
+@router.patch("/translations/{translation_id}/favorite")
+async def update_favorite(translation_id: str, req: FavoriteRequest):
+    """즐겨찾기 토글."""
+    loop = get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, toggle_favorite, translation_id, req.is_favorite)
+        return {"ok": True, "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

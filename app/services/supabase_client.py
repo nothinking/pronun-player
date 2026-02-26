@@ -28,16 +28,16 @@ def _request(method: str, path: str, body: Optional[Union[Dict, List]] = None, e
     return resp.status, resp_body
 
 
-def save_translation(video_id: str, title: str, provider: str, subtitles: list[dict]) -> dict:
+def save_translation(video_id: str, title: str, provider: str, subtitles: list, thumbnail_url: str = "") -> dict:
     """번역 결과를 Supabase에 저장한다. 같은 video_id+provider면 upsert."""
     row = {
         "video_id": video_id,
         "title": title,
         "provider": provider,
         "subtitles": subtitles,
+        "thumbnail_url": thumbnail_url,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    # upsert: on conflict (video_id, provider) → update
     status, body = _request(
         "POST",
         "/rest/v1/translations",
@@ -51,7 +51,7 @@ def save_translation(video_id: str, title: str, provider: str, subtitles: list[d
     return json.loads(body)[0] if body.startswith("[") else json.loads(body)
 
 
-def get_translations(video_id: str) -> list[dict]:
+def get_translations(video_id: str) -> list:
     """특정 video_id의 번역 목록을 가져온다."""
     path = f"/rest/v1/translations?video_id=eq.{video_id}&order=updated_at.desc"
     status, body = _request("GET", path)
@@ -60,13 +60,31 @@ def get_translations(video_id: str) -> list[dict]:
     return json.loads(body)
 
 
-def get_history(limit: int = 20) -> list[dict]:
-    """최근 번역 히스토리를 가져온다 (subtitles 제외)."""
-    path = f"/rest/v1/translations?select=id,video_id,title,provider,updated_at&order=updated_at.desc&limit={limit}"
+def get_history(limit: int = 50) -> list:
+    """최근 번역 히스토리를 가져온다 (subtitles 제외). 즐겨찾기 우선."""
+    path = (
+        f"/rest/v1/translations"
+        f"?select=id,video_id,title,provider,updated_at,is_favorite,thumbnail_url"
+        f"&order=is_favorite.desc.nullsfirst,updated_at.desc"
+        f"&limit={limit}"
+    )
     status, body = _request("GET", path)
     if status != 200:
         raise RuntimeError(f"Supabase history error {status}: {body[:300]}")
     return json.loads(body)
+
+
+def toggle_favorite(translation_id: str, is_favorite: bool) -> dict:
+    """즐겨찾기 토글."""
+    path = f"/rest/v1/translations?id=eq.{translation_id}"
+    status, body = _request(
+        "PATCH",
+        path,
+        body={"is_favorite": is_favorite},
+    )
+    if status not in (200, 204):
+        raise RuntimeError(f"Supabase favorite error {status}: {body[:300]}")
+    return json.loads(body)[0] if body.startswith("[") else {}
 
 
 def delete_translation(translation_id: str) -> bool:

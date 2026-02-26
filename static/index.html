@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube Subtitle Extractor</title>
+  <title>Pronun Player</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -12,713 +12,914 @@
       color: #e1e1e1;
       min-height: 100vh;
     }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 48px 24px;
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .hidden { display: none !important; }
+
+    /* ─── Header ─── */
+    .app-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0; margin-bottom: 24px; border-bottom: 1px solid #222;
     }
-    h1 {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 8px;
+    .app-header h1 { font-size: 22px; font-weight: 700; cursor: pointer; }
+    .app-header h1 span { color: #ff4444; }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px; color: #888;
+      font-size: 14px; cursor: pointer; transition: color 0.2s;
     }
-    .desc {
-      color: #888;
-      margin-bottom: 32px;
-      font-size: 14px;
-    }
-    .input-group {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-    input[type="text"], input[type="password"] {
-      flex: 1;
-      padding: 12px 16px;
-      border: 1px solid #333;
-      border-radius: 8px;
-      background: #1a1a1a;
-      color: #e1e1e1;
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    input[type="text"]:focus, input[type="password"]:focus { border-color: #ff4444; }
-    input[type="text"]::placeholder, input[type="password"]::placeholder { color: #555; }
-    select {
-      padding: 12px 12px;
-      border: 1px solid #333;
-      border-radius: 8px;
-      background: #1a1a1a;
-      color: #e1e1e1;
-      font-size: 13px;
-      outline: none;
-      cursor: pointer;
-      min-width: 100px;
-    }
-    select:focus { border-color: #ff4444; }
-    button {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      background: #ff4444;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      white-space: nowrap;
+    .back-btn:hover { color: #e1e1e1; }
+
+    /* ─── Buttons ─── */
+    button, .btn {
+      padding: 10px 20px; border: none; border-radius: 8px;
+      background: #ff4444; color: #fff; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s; white-space: nowrap;
     }
     button:hover { background: #e03333; }
     button:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    .btn-ghost { background: transparent; border: 1px solid #333; color: #aaa; }
+    .btn-ghost:hover { border-color: #555; color: #e1e1e1; background: #1a1a1a; }
+    .btn-green { background: #1a2e1a; border: 1px solid #2a4e2a; color: #88cc88; }
+    .btn-green:hover { background: #224422; }
+    .btn-blue { background: #1a1a2e; border: 1px solid #2a2a4e; color: #7b8cff; }
+    .btn-blue:hover { background: #222244; }
+
+    /* ─── Inputs ─── */
+    input[type="text"], input[type="password"], select {
+      padding: 10px 14px; border: 1px solid #333; border-radius: 8px;
+      background: #1a1a1a; color: #e1e1e1; font-size: 14px; outline: none;
+    }
+    input:focus, select:focus { border-color: #ff4444; }
+    input::placeholder { color: #555; }
+    select { cursor: pointer; min-width: 100px; }
+
+    /* ─── Status ─── */
     .status {
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-      font-size: 14px;
-      display: none;
+      padding: 10px 14px; border-radius: 8px; margin-bottom: 16px;
+      font-size: 13px; display: none;
     }
-    .status.loading {
-      display: block;
-      background: #1a1a2e;
-      color: #7b8cff;
-      border: 1px solid #2a2a4e;
-    }
-    .status.error {
-      display: block;
-      background: #2e1a1a;
-      color: #ff7b7b;
-      border: 1px solid #4e2a2a;
-    }
-    .status.warn {
-      display: block;
-      background: #2e2a1a;
-      color: #ffcc7b;
-      border: 1px solid #4e3a2a;
-    }
-    .result { display: none; }
-    .result.visible { display: block; }
-    .meta {
-      display: flex;
-      gap: 16px;
-      align-items: baseline;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .meta h2 { font-size: 18px; font-weight: 600; }
-    .meta span { font-size: 13px; color: #888; }
-    .subtitle-list {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .subtitle-item {
-      display: grid;
-      grid-template-columns: 140px 1fr;
-      gap: 16px;
-      padding: 12px 16px;
-      border-radius: 6px;
-      background: #1a1a1a;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-    .subtitle-item:hover { background: #222; }
-    .time {
-      color: #888;
-      font-family: 'SF Mono', Menlo, monospace;
-      font-size: 12px;
-      padding-top: 2px;
-    }
-    .text { color: #e1e1e1; }
-    .pronunciation { color: #7b8cff; font-size: 13px; margin-top: 4px; }
-    .korean { color: #88cc88; font-size: 13px; margin-top: 2px; }
-    .subtitle-item.failed { border-left: 3px solid #ff4444; }
-    .fail-tag {
-      display: inline-block;
-      font-size: 11px;
-      color: #ff7b7b;
-      background: #2e1a1a;
-      border: 1px solid #4e2a2a;
-      border-radius: 4px;
-      padding: 1px 6px;
-      margin-top: 4px;
-    }
-    .toolbar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .tool-btn {
-      padding: 8px 16px;
-      font-size: 13px;
-      background: #222;
-      border: 1px solid #333;
-      color: #aaa;
-    }
-    .tool-btn:hover { background: #2a2a2a; border-color: #444; color: #e1e1e1; }
-    .translate-btn { background: #1a2e1a; border-color: #2a4e2a; color: #88cc88; }
-    .translate-btn:hover { background: #224422; border-color: #3a6e3a; color: #aaddaa; }
-    .translate-btn:disabled { background: #1a1a1a; border-color: #333; color: #555; }
-    .stop-btn { background: #2e1a1a; border-color: #4e2a2a; color: #ff7b7b; }
-    .stop-btn:hover { background: #3e2222; border-color: #6e3a3a; color: #ffaaaa; }
-    .save-btn { background: #1a1a2e; border-color: #2a2a4e; color: #7b8cff; }
-    .save-btn:hover { background: #222244; border-color: #3a3a6e; color: #aabbff; }
-    .save-btn:disabled { background: #1a1a1a; border-color: #333; color: #555; }
-    .history-panel {
-      margin-bottom: 24px;
-      display: none;
-    }
-    .history-panel.visible { display: block; }
-    .history-panel h3 {
-      font-size: 14px;
-      color: #888;
-      margin-bottom: 8px;
-    }
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .history-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      background: #1a1a1a;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.2s;
-      font-size: 13px;
-    }
-    .history-item:hover { background: #222; }
-    .history-item .hi-title {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-right: 12px;
-    }
-    .history-item .hi-meta {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      color: #888;
-      font-size: 11px;
-      flex-shrink: 0;
-    }
-    .provider-badge {
-      display: inline-block;
-      padding: 1px 6px;
-      border-radius: 3px;
-      font-size: 10px;
-      background: #222;
-      border: 1px solid #333;
-      color: #aaa;
-    }
-    .hidden { display: none !important; }
-    .progress-bar-container {
-      width: 100%;
-      height: 4px;
-      background: #222;
-      border-radius: 2px;
-      margin-bottom: 16px;
-      overflow: hidden;
-      display: none;
-    }
-    .progress-bar-container.visible { display: block; }
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #88cc88, #44aa44);
-      border-radius: 2px;
-      transition: width 0.4s ease;
-      width: 0%;
-    }
+    .status.loading { display: block; background: #1a1a2e; color: #7b8cff; border: 1px solid #2a2a4e; }
+    .status.error { display: block; background: #2e1a1a; color: #ff7b7b; border: 1px solid #4e2a2a; }
+    .status.warn { display: block; background: #2e2a1a; color: #ffcc7b; border: 1px solid #4e3a2a; }
     .spinner {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid #7b8cff;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid #7b8cff; border-top-color: transparent;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Progress bar ─── */
+    .progress-wrap { height: 4px; background: #222; border-radius: 2px; margin-bottom: 12px; overflow: hidden; display: none; }
+    .progress-wrap.visible { display: block; }
+    .progress-bar { height: 100%; background: linear-gradient(90deg,#88cc88,#44aa44); border-radius: 2px; transition: width 0.4s; width: 0%; }
+
+    /* ═══════════════════════════════════
+       PAGE 1: Video List
+    ═══════════════════════════════════ */
+    .video-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .video-card {
+      background: #1a1a1a; border-radius: 10px; overflow: hidden;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .video-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    .card-thumb {
+      width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #222;
+      display: block;
+    }
+    .card-body { padding: 12px; }
+    .card-title {
+      font-size: 14px; font-weight: 600; line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; margin-bottom: 8px;
+    }
+    .card-meta { display: flex; justify-content: space-between; align-items: center; }
+    .provider-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; background: #222; border: 1px solid #333; color: #aaa;
+    }
+    .fav-btn {
+      background: none; border: none; padding: 4px; font-size: 18px;
+      cursor: pointer; color: #555; transition: color 0.2s;
+    }
+    .fav-btn.active { color: #ffcc00; }
+    .fav-btn:hover { color: #ffcc00; }
+    .card-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .card-actions button { flex: 1; font-size: 11px; padding: 6px 8px; }
+
+    /* Add video modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal {
+      background: #1a1a1a; border-radius: 12px; padding: 28px;
+      width: 90%; max-width: 520px; border: 1px solid #333;
+    }
+    .modal h2 { font-size: 18px; margin-bottom: 16px; }
+    .modal .input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .modal .input-row input, .modal .input-row select { flex: 1; }
+
+    /* ═══════════════════════════════════
+       PAGE 2: Player
+    ═══════════════════════════════════ */
+    .player-wrap {
+      position: relative; width: 100%; padding-bottom: 56.25%; /* 16:9 */
+      background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+    }
+    .player-wrap iframe,
+    .player-wrap > div:not(.sub-overlay) {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
+    }
+    .sub-overlay {
+      position: absolute; bottom: 6%; left: 50%; transform: translateX(-50%);
+      width: 92%; text-align: center; z-index: 10; pointer-events: none;
+      background: rgba(0,0,0,0.7); border-radius: 8px; padding: 10px 16px;
+      transition: opacity 0.2s;
+    }
+    .sub-overlay.empty { opacity: 0; }
+    .sub-overlay .overlay-pronun {
+      font-size: 20px; font-weight: 700; color: #ffdd44;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      line-height: 1.5; margin-bottom: 4px;
+    }
+    .sub-overlay .overlay-text {
+      font-size: 14px; color: #fff;
+      line-height: 1.4; margin-bottom: 2px;
+    }
+    .sub-overlay .overlay-korean {
+      font-size: 13px; color: #aaffaa;
+      line-height: 1.4;
+    }
+
+    .sub-controls {
+      display: flex; align-items: center; gap: 8px; padding: 10px 0;
+      flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .sub-controls button { padding: 7px 14px; font-size: 12px; }
+    .speed-display {
+      background: #222; padding: 5px 12px; border-radius: 6px;
+      font-size: 13px; font-family: monospace; color: #88cc88; min-width: 52px; text-align: center;
+    }
+    .repeat-badge {
+      background: #2e1a1a; border: 1px solid #4e2a2a; color: #ff7b7b;
+      padding: 5px 10px; border-radius: 6px; font-size: 12px;
+    }
+    .repeat-badge.active { background: #1a2e1a; border-color: #2a4e2a; color: #88cc88; }
+
+    .subtitle-list { display: flex; flex-direction: column; gap: 2px; }
+    .subtitle-item {
+      display: grid; grid-template-columns: 100px 1fr;
+      gap: 12px; padding: 10px 14px; border-radius: 6px;
+      background: #1a1a1a; font-size: 13px; line-height: 1.6;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .subtitle-item:hover { background: #222; }
+    .subtitle-item.active { background: #1a2e1a; border-left: 3px solid #44aa44; }
+    .subtitle-item .time { color: #888; font-family: monospace; font-size: 11px; padding-top: 2px; }
+    .subtitle-item .text { color: #e1e1e1; }
+    .subtitle-item .pronunciation { color: #7b8cff; font-size: 12px; margin-top: 3px; }
+    .subtitle-item .korean { color: #88cc88; font-size: 12px; margin-top: 2px; }
+
+    /* ═══════════════════════════════════
+       PAGE 3: Learn
+    ═══════════════════════════════════ */
+    .learn-card {
+      background: #1a1a1a; border-radius: 14px; padding: 40px 32px;
+      text-align: center; margin-bottom: 20px; min-height: 200px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+    }
+    .learn-card .eng-text {
+      font-size: 24px; font-weight: 600; line-height: 1.5; margin-bottom: 20px;
+      cursor: pointer; padding: 8px 16px; border-radius: 8px; transition: background 0.2s;
+    }
+    .learn-card .eng-text:hover { background: #222; }
+    .learn-card .eng-text.blur { filter: blur(8px); user-select: none; }
+    .learn-card .pronun-text {
+      font-size: 20px; color: #7b8cff; margin-bottom: 12px;
+      cursor: pointer; padding: 8px 16px; border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .learn-card .pronun-text:hover { background: #222; }
+    .learn-card .pronun-text.blur { filter: blur(8px); user-select: none; }
+    .learn-card .korean-text {
+      font-size: 17px; color: #88cc88;
+      cursor: pointer; padding: 6px 14px; border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .learn-card .korean-text:hover { background: #222; }
+    .learn-card .korean-text.blur { filter: blur(8px); user-select: none; }
+    .learn-card .reveal-hint { font-size: 11px; color: #555; margin-top: 8px; }
+
+    .learn-controls {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; padding: 14px 0; flex-wrap: wrap;
+    }
+    .learn-controls button { padding: 10px 18px; }
+    .learn-progress {
+      text-align: center; color: #555; font-size: 13px; margin-top: 8px;
+    }
+    .learn-progress-bar {
+      height: 3px; background: #222; border-radius: 2px; margin-top: 10px; overflow: hidden;
+    }
+    .learn-progress-fill {
+      height: 100%; background: #7b8cff; border-radius: 2px; transition: width 0.3s;
+    }
+    .learn-options {
+      display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap;
+    }
+    .learn-options label {
+      font-size: 12px; color: #888; display: flex; align-items: center; gap: 4px; cursor: pointer;
+    }
+    .learn-options input[type="checkbox"] { accent-color: #7b8cff; }
+
+    .shortcuts-help {
+      margin-top: 20px; padding: 16px; background: #1a1a1a; border-radius: 8px;
+      font-size: 12px; color: #666;
+    }
+    .shortcuts-help kbd {
+      background: #222; border: 1px solid #333; padding: 1px 6px;
+      border-radius: 3px; font-family: monospace; color: #aaa;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>YouTube Subtitle Extractor</h1>
-    <p class="desc">YouTube URL을 입력하면 영어 자막을 JSON으로 추출합니다.</p>
-
-    <div class="input-group">
-      <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." autofocus>
-      <button id="extractBtn" onclick="extract()">추출</button>
-    </div>
-    <div class="input-group">
-      <select id="providerSelect" onchange="onProviderChange()">
-        <option value="gemini">Gemini</option>
-        <option value="groq">Groq</option>
-        <option value="openrouter">OpenRouter</option>
-        <option value="grok">Grok</option>
-        <option value="deepseek">DeepSeek</option>
-      </select>
-      <input type="password" id="apiKeyInput" placeholder="Gemini API Key (번역시 필요)" style="font-size:13px;">
+    <div class="app-header">
+      <div class="back-btn hidden" id="backBtn" onclick="goBack()">&#8592; 뒤로</div>
+      <h1 onclick="navigate('/videos')"><span>P</span>ronun Player</h1>
+      <div id="headerRight"></div>
     </div>
 
     <div class="status" id="status"></div>
 
-    <div class="history-panel" id="historyPanel">
-      <h3>최근 번역 기록</h3>
-      <div class="history-list" id="historyList"></div>
+    <!-- PAGE 1: Video List -->
+    <div id="page-videos" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h2 style="font-size:16px;color:#888;">학습 영상 목록</h2>
+        <button class="btn-sm" onclick="showAddModal()">+ 새 영상 추가</button>
+      </div>
+      <div class="video-grid" id="videoGrid"></div>
+      <div id="emptyState" class="hidden" style="text-align:center;padding:60px 0;color:#555;">
+        <p style="font-size:48px;margin-bottom:16px;">📚</p>
+        <p style="font-size:15px;">아직 저장된 영상이 없습니다</p>
+        <p style="font-size:13px;margin-top:8px;">"새 영상 추가" 버튼으로 YouTube 영상을 추가해보세요</p>
+      </div>
     </div>
 
-    <div class="result" id="result">
-      <div class="meta">
-        <h2 id="videoTitle"></h2>
-        <span id="subtitleCount"></span>
+    <!-- PAGE 2: Player -->
+    <div id="page-player" class="page hidden">
+      <div id="playerTitle" style="font-size:16px;font-weight:600;margin-bottom:14px;"></div>
+      <div class="player-wrap">
+        <div id="ytPlayer"></div>
+        <div class="sub-overlay empty" id="subOverlay">
+          <div class="overlay-pronun" id="overlayPronun"></div>
+          <div class="overlay-text" id="overlayText"></div>
+          <div class="overlay-korean" id="overlayKorean"></div>
+        </div>
       </div>
-      <div class="toolbar">
-        <button class="tool-btn" onclick="copyJson()">JSON 복사</button>
-        <button class="tool-btn translate-btn" id="translateBtn" onclick="doTranslate()">번역하기</button>
-        <button class="tool-btn stop-btn hidden" id="stopBtn" onclick="stopTranslate()">번역 중지</button>
-        <button class="tool-btn save-btn hidden" id="saveBtn" onclick="saveToSupabase()">DB 저장</button>
+      <div class="sub-controls">
+        <button class="btn-ghost btn-sm" onclick="prevSub()">◀ 이전</button>
+        <button class="btn-ghost btn-sm" onclick="togglePlay()" id="playBtn">▶ 재생</button>
+        <button class="btn-ghost btn-sm" onclick="nextSub()">다음 ▶</button>
+        <span style="color:#333;">|</span>
+        <button class="btn-ghost btn-sm" onclick="changeSpeed(-0.25)">느리게</button>
+        <span class="speed-display" id="speedDisplay">1.00x</span>
+        <button class="btn-ghost btn-sm" onclick="changeSpeed(0.25)">빠르게</button>
+        <span style="color:#333;">|</span>
+        <button class="btn-ghost btn-sm repeat-badge" id="repeatBtn" onclick="toggleRepeat()">🔁 반복</button>
+        <select id="repeatCount" style="padding:5px 8px;font-size:12px;min-width:60px;" onchange="onRepeatCountChange()">
+          <option value="0">무한</option>
+          <option value="1">1회</option>
+          <option value="3" selected>3회</option>
+          <option value="5">5회</option>
+          <option value="10">10회</option>
+        </select>
+        <span style="color:#333;">|</span>
+        <button class="btn-green btn-sm" onclick="goLearn()">🎧 발음학습</button>
       </div>
-      <div class="progress-bar-container" id="progressContainer">
-        <div class="progress-bar" id="progressBar"></div>
+      <div class="subtitle-list" id="playerSubtitleList"></div>
+    </div>
+
+    <!-- PAGE 3: Learn -->
+    <div id="page-learn" class="page hidden">
+      <div id="learnTitle" style="font-size:16px;font-weight:600;margin-bottom:14px;"></div>
+      <div class="learn-card" id="learnCard">
+        <div class="eng-text blur" id="learnEng" onclick="this.classList.toggle('blur')"></div>
+        <div class="pronun-text blur" id="learnPronun" onclick="this.classList.toggle('blur')"></div>
+        <div class="korean-text blur" id="learnKorean" onclick="this.classList.toggle('blur')"></div>
+        <div class="reveal-hint">클릭하면 보기/숨기기</div>
       </div>
-      <div class="subtitle-list" id="subtitleList"></div>
+      <div class="learn-controls">
+        <button class="btn-ghost" onclick="learnPrev()">◀ 이전</button>
+        <button class="btn-blue" onclick="learnPlayToggle()" id="learnPlayBtn">▶ 재생</button>
+        <button class="btn-ghost" onclick="learnNext()">다음 ▶</button>
+        <span style="color:#333;">|</span>
+        <button class="btn-ghost btn-sm" onclick="learnChangeSpeed(-0.25)">느리게</button>
+        <span class="speed-display" id="learnSpeedDisplay">1.00x</span>
+        <button class="btn-ghost btn-sm" onclick="learnChangeSpeed(0.25)">빠르게</button>
+        <span style="color:#333;">|</span>
+        <button class="btn-ghost btn-sm repeat-badge" id="learnRepeatBtn" onclick="learnToggleRepeat()">🔁 반복</button>
+        <select id="learnRepeatCount" style="padding:5px 8px;font-size:12px;min-width:60px;">
+          <option value="0">무한</option>
+          <option value="1">1회</option>
+          <option value="3" selected>3회</option>
+          <option value="5">5회</option>
+        </select>
+      </div>
+      <div class="learn-options">
+        <label><input type="checkbox" id="autoRevealEng"> 영어 자동 표시</label>
+        <label><input type="checkbox" id="autoRevealPronun" checked> 발음 자동 표시</label>
+        <label><input type="checkbox" id="autoRevealKorean"> 번역 자동 표시</label>
+        <label><input type="checkbox" id="autoNext" checked> 자동 다음</label>
+      </div>
+      <div class="learn-progress">
+        <span id="learnProgressText">0 / 0</span>
+        <div class="learn-progress-bar"><div class="learn-progress-fill" id="learnProgressFill"></div></div>
+      </div>
+      <div class="shortcuts-help">
+        <strong>단축키:</strong>
+        <kbd>Space</kbd> 재생/정지 &nbsp;
+        <kbd>←</kbd> 이전 &nbsp;
+        <kbd>→</kbd> 다음 &nbsp;
+        <kbd>R</kbd> 반복 토글 &nbsp;
+        <kbd>P</kbd> 발음 보기 &nbsp;
+        <kbd>K</kbd> 번역 보기 &nbsp;
+        <kbd>-</kbd> 느리게 &nbsp;
+        <kbd>+</kbd> 빠르게
+      </div>
+    </div>
+
+    <!-- Add Video Modal -->
+    <div class="modal-overlay hidden" id="addModal" onclick="if(event.target===this)closeAddModal()">
+      <div class="modal">
+        <h2>새 영상 추가</h2>
+        <div class="input-row">
+          <input type="text" id="modalUrl" placeholder="YouTube URL" style="flex:2;">
+          <button onclick="modalExtract()" id="modalExtractBtn">추출</button>
+        </div>
+        <div class="input-row">
+          <select id="modalProvider" onchange="onModalProviderChange()">
+            <option value="gemini">Gemini</option>
+            <option value="groq">Groq</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="grok">Grok</option>
+            <option value="deepseek">DeepSeek</option>
+          </select>
+          <input type="password" id="modalApiKey" placeholder="API Key" style="flex:2;font-size:13px;">
+        </div>
+        <div class="status" id="modalStatus"></div>
+        <div class="progress-wrap" id="modalProgress"><div class="progress-bar" id="modalProgressBar"></div></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+          <button class="btn-ghost" onclick="closeAddModal()">취소</button>
+          <button class="btn-green" id="modalTranslateBtn" onclick="modalTranslate()" disabled>번역 + 저장</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script>
-    const urlInput = document.getElementById('urlInput');
-    const extractBtn = document.getElementById('extractBtn');
-    const translateBtn = document.getElementById('translateBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const status = document.getElementById('status');
-    const result = document.getElementById('result');
+<script>
+// ═══ State ═══
+let videoList = [];
+let currentVideoId = '';
+let currentProvider = '';
+let currentSubs = [];
+let currentSubIndex = -1;
+let ytPlayer = null;
+let ytReady = false;
+let isRepeat = false;
+let repeatMax = 3;
+let repeatCount = 0;
+let playbackRate = 1.0;
+let timeUpdateInterval = null;
 
-    let lastData = null;
-    let originalSubtitles = null;  // 원본 자막 보관
-    let isTranslated = false;
-    let isTranslating = false;
-    let abortController = null;
-    let lastUsedProvider = null;
+let learnIndex = 0;
+let learnSubs = [];
+let learnRepeat = false;
+let learnRepeatMax = 3;
+let learnRepeatCount = 0;
+let learnRate = 1.0;
+let learnPlaying = false;
+let learnTimeInterval = null;
 
-    const providerConfig = {
-      gemini:     { placeholder: 'Gemini API Key', defaultKey: '', label: 'Gemini' },
-      groq:       { placeholder: 'Groq API Key (groq.com에서 발급)', defaultKey: '', label: 'Groq' },
-      openrouter: { placeholder: 'OpenRouter API Key (openrouter.ai에서 발급)', defaultKey: '', label: 'OpenRouter' },
-      grok:       { placeholder: 'Grok API Key (console.x.ai에서 발급)', defaultKey: '', label: 'Grok' },
-      deepseek:   { placeholder: 'DeepSeek API Key (platform.deepseek.com에서 발급)', defaultKey: '', label: 'DeepSeek' },
-    };
+let modalData = null;
+let modalAbort = null;
 
-    function onProviderChange() {
-      const provider = document.getElementById('providerSelect').value;
-      const apiKeyInput = document.getElementById('apiKeyInput');
-      const cfg = providerConfig[provider];
-      apiKeyInput.placeholder = cfg.placeholder;
-      apiKeyInput.value = cfg.defaultKey;
+const providerLabels = { gemini:'Gemini', groq:'Groq', openrouter:'OpenRouter', grok:'Grok', deepseek:'DeepSeek' };
 
-      // provider가 바뀌면 다시 번역 가능하게
-      if (lastData && isTranslated && provider !== lastUsedProvider) {
-        isTranslated = false;
-        translateBtn.textContent = '번역하기';
-        translateBtn.disabled = false;
-        saveBtn.classList.add('hidden');
-      }
-    }
+// ═══ Router ═══
+function navigate(path) { window.location.hash = path; }
 
-    urlInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') extract();
+function parseRoute() {
+  const hash = window.location.hash.slice(1) || '/videos';
+  const [path, query] = hash.split('?');
+  const params = new URLSearchParams(query || '');
+  const parts = path.split('/').filter(Boolean);
+  return { parts, params };
+}
+
+function route() {
+  const { parts, params } = parseRoute();
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById('backBtn').classList.add('hidden');
+  setStatus('', '');
+  stopTimeUpdate();
+  stopLearnTimeUpdate();
+
+  if (parts[0] === 'player' && parts[1]) {
+    showPage('page-player');
+    document.getElementById('backBtn').classList.remove('hidden');
+    loadPlayer(parts[1], params.get('provider') || '');
+  } else if (parts[0] === 'learn' && parts[1]) {
+    showPage('page-learn');
+    document.getElementById('backBtn').classList.remove('hidden');
+    loadLearn(parts[1], params.get('provider') || '');
+  } else {
+    showPage('page-videos');
+    destroyYT();
+    loadVideoList();
+  }
+}
+
+function showPage(id) { document.getElementById(id).classList.remove('hidden'); }
+
+function goBack() {
+  const { parts } = parseRoute();
+  if (parts[0] === 'learn' && currentVideoId) {
+    navigate('/player/' + currentVideoId + '?provider=' + currentProvider);
+  } else {
+    navigate('/videos');
+  }
+}
+
+function goLearn() {
+  navigate('/learn/' + currentVideoId + '?provider=' + currentProvider);
+}
+
+window.addEventListener('hashchange', route);
+
+// ═══ Utility ═══
+function escapeHtml(t) { const d=document.createElement('div'); d.textContent=t||''; return d.innerHTML; }
+function setStatus(msg, type) { const s=document.getElementById('status'); if(!msg){s.className='status';return;} s.className='status '+type; s.innerHTML=msg; }
+function thumbUrl(vid) { return 'https://img.youtube.com/vi/'+vid+'/mqdefault.jpg'; }
+function formatMs(ms) { const s=Math.floor(ms/1000),m=Math.floor(s/60); return m+':'+String(s%60).padStart(2,'0'); }
+
+// ═══ PAGE 1: Video List ═══
+async function loadVideoList() {
+  try {
+    const res = await fetch('/api/history');
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
+    videoList = json.data || [];
+    renderVideoGrid();
+  } catch (e) { setStatus('목록 로드 실패: '+e.message, 'error'); }
+}
+
+function renderVideoGrid() {
+  const grid = document.getElementById('videoGrid');
+  const empty = document.getElementById('emptyState');
+  if (!videoList.length) { grid.innerHTML=''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  grid.innerHTML = videoList.map(v => `
+    <div class="video-card">
+      <img class="card-thumb" src="${v.thumbnail_url||thumbUrl(v.video_id)}"
+           onerror="this.style.background='#222'"
+           onclick="navigate('/player/${v.video_id}?provider=${v.provider}')">
+      <div class="card-body">
+        <div class="card-title" onclick="navigate('/player/${v.video_id}?provider=${v.provider}')">${escapeHtml(v.title||v.video_id)}</div>
+        <div class="card-meta">
+          <span class="provider-badge">${escapeHtml(v.provider)}</span>
+          <button class="fav-btn ${v.is_favorite?'active':''}" onclick="event.stopPropagation();toggleFav('${v.id}',${!v.is_favorite})">★</button>
+        </div>
+        <div class="card-actions">
+          <button class="btn-ghost btn-sm" onclick="event.stopPropagation();navigate('/player/${v.video_id}?provider=${v.provider}')">▶ 영상보기</button>
+          <button class="btn-blue btn-sm" onclick="event.stopPropagation();navigate('/learn/${v.video_id}?provider=${v.provider}')">🎧 발음학습</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function toggleFav(id, isFav) {
+  try {
+    await fetch('/api/translations/'+id+'/favorite', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({is_favorite:isFav}),
     });
+    const item = videoList.find(v=>v.id===id);
+    if (item) item.is_favorite = isFav;
+    videoList.sort((a,b) => (b.is_favorite?1:0) - (a.is_favorite?1:0));
+    renderVideoGrid();
+  } catch(e) {}
+}
 
-    function renderSubtitles(data) {
-      const list = document.getElementById('subtitleList');
-      list.innerHTML = data.subtitles.map(s => buildSubtitleHtml(s)).join('');
-    }
+// ─── Add Modal ───
+function showAddModal() {
+  document.getElementById('addModal').classList.remove('hidden');
+  document.getElementById('modalUrl').value='';
+  document.getElementById('modalUrl').focus();
+  modalData=null;
+  document.getElementById('modalTranslateBtn').disabled=true;
+  document.getElementById('modalStatus').className='status';
+  document.getElementById('modalProgress').classList.remove('visible');
+}
+function closeAddModal() {
+  document.getElementById('addModal').classList.add('hidden');
+  if(modalAbort){modalAbort.abort();modalAbort=null;}
+}
+function onModalProviderChange() {
+  const p=document.getElementById('modalProvider').value;
+  document.getElementById('modalApiKey').placeholder=providerLabels[p]+' API Key';
+}
 
-    function buildSubtitleHtml(s) {
-      let content = `<div class="text">${escapeHtml(s.text)}</div>`;
-      if (s.pronunciation) {
-        content += `<div class="pronunciation">${escapeHtml(s.pronunciation)}</div>`;
-      }
-      if (s.korean) {
-        content += `<div class="korean">${escapeHtml(s.korean)}</div>`;
-      }
-      return `
-        <div class="subtitle-item" id="sub-${s.index}">
-          <div class="time">${s.start_time} &rarr; ${s.end_time}</div>
-          <div>${content}</div>
-        </div>`;
-    }
+async function modalExtract() {
+  const url=document.getElementById('modalUrl').value.trim();
+  if(!url)return;
+  const btn=document.getElementById('modalExtractBtn');
+  const ms=document.getElementById('modalStatus');
+  btn.disabled=true;
+  ms.className='status loading';
+  ms.innerHTML='<span class="spinner"></span>자막 추출 중...';
+  try {
+    const res=await fetch('/api/subtitles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    if(!res.ok){const e=await res.json();throw new Error(e.detail);}
+    modalData=await res.json();
+    ms.className='status loading';
+    ms.textContent='"'+modalData.title+'" — '+modalData.subtitle_count+'개 자막. 번역을 시작하세요.';
+    document.getElementById('modalTranslateBtn').disabled=false;
+  } catch(e) { ms.className='status error'; ms.textContent=e.message; }
+  finally { btn.disabled=false; }
+}
 
-    function updateSubtitleItem(s) {
-      const el = document.getElementById('sub-' + s.index);
-      if (el) {
-        el.classList.remove('failed');
-        let content = `<div class="text">${escapeHtml(s.text)}</div>`;
-        if (s.pronunciation) {
-          content += `<div class="pronunciation">${escapeHtml(s.pronunciation)}</div>`;
+async function modalTranslate() {
+  if(!modalData)return;
+  const provider=document.getElementById('modalProvider').value;
+  const apiKey=document.getElementById('modalApiKey').value.trim();
+  const ms=document.getElementById('modalStatus');
+  if(!apiKey){ms.className='status error';ms.textContent=providerLabels[provider]+' API Key를 입력해주세요.';return;}
+
+  const pb=document.getElementById('modalProgressBar');
+  const pw=document.getElementById('modalProgress');
+  const tbtn=document.getElementById('modalTranslateBtn');
+  tbtn.disabled=true; pw.classList.add('visible'); pb.style.width='0%';
+  modalAbort=new AbortController();
+
+  try {
+    const res=await fetch('/api/translate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({video_id:modalData.video_id,title:modalData.title,api_key:apiKey,provider,subtitles:modalData.subtitles}),
+      signal:modalAbort.signal,
+    });
+    const reader=res.body.getReader();
+    const decoder=new TextDecoder();
+    let buffer='';
+    let translated=[...modalData.subtitles];
+
+    while(true){
+      const{done,value}=await reader.read();
+      if(done)break;
+      buffer+=decoder.decode(value,{stream:true});
+      const lines=buffer.split('\n');
+      buffer=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: '))continue;
+        const payload=line.slice(6).trim();
+        if(payload==='[DONE]'){
+          pb.style.width='100%';
+          ms.className='status loading';
+          ms.innerHTML='<span class="spinner"></span>DB에 저장 중...';
+          await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({video_id:modalData.video_id,title:modalData.title,provider,subtitles:translated,thumbnail_url:thumbUrl(modalData.video_id)})});
+          ms.className='status'; ms.innerHTML='';
+          closeAddModal(); loadVideoList(); return;
         }
-        if (s.korean) {
-          content += `<div class="korean">${escapeHtml(s.korean)}</div>`;
-        }
-        el.querySelector('div:last-child').innerHTML = content;
-        el.style.transition = 'background 0.3s';
-        el.style.background = '#1a2e1a';
-        setTimeout(() => { el.style.background = ''; }, 800);
+        const data=JSON.parse(payload);
+        if(data.error)throw new Error(data.error);
+        const pct=Math.round((data.batch/data.total)*100);
+        pb.style.width=pct+'%';
+        ms.className='status loading';
+        ms.innerHTML='<span class="spinner"></span>'+providerLabels[provider]+'로 번역 중... ('+data.batch+'/'+data.total+' - '+pct+'%)';
+        if(!data.failed){for(const e of data.entries){const idx=translated.findIndex(s=>s.index===e.index);if(idx!==-1)translated[idx]=e;}}
       }
     }
+  } catch(e){
+    if(e.name==='AbortError'){ms.className='status warn';ms.textContent='번역이 중지되었습니다.';}
+    else{ms.className='status error';ms.textContent=e.message;}
+  } finally { tbtn.disabled=false; pw.classList.remove('visible'); modalAbort=null; }
+}
 
-    function markSubtitleFailed(s, errorMsg) {
-      const el = document.getElementById('sub-' + s.index);
-      if (el) {
-        el.classList.add('failed');
-        let content = `<div class="text">${escapeHtml(s.text)}</div>`;
-        content += `<div class="fail-tag">번역 실패: ${escapeHtml(errorMsg)}</div>`;
-        el.querySelector('div:last-child').innerHTML = content;
-        el.style.transition = 'background 0.3s';
-        el.style.background = '#2e1a1a';
-        setTimeout(() => { el.style.background = ''; }, 1500);
+// ═══ PAGE 2: Player ═══
+async function loadPlayer(videoId, provider) {
+  currentVideoId=videoId; currentProvider=provider;
+  setStatus('<span class="spinner"></span>자막 로딩 중...','loading');
+  try {
+    const res=await fetch('/api/translations/'+videoId);
+    if(!res.ok)throw new Error('Load failed');
+    const json=await res.json();
+    const items=json.data||[];
+    const found=items.find(i=>i.provider===provider)||items[0];
+    if(!found)throw new Error('저장된 번역이 없습니다');
+    currentSubs=found.subtitles; currentProvider=found.provider; currentSubIndex=-1;
+    document.getElementById('playerTitle').textContent=found.title||videoId;
+    setStatus('','');
+    renderPlayerSubs();
+    initYouTube(videoId);
+  } catch(e){ setStatus('로드 실패: '+e.message,'error'); }
+}
+
+function renderPlayerSubs() {
+  document.getElementById('playerSubtitleList').innerHTML=currentSubs.map((s,i)=>`
+    <div class="subtitle-item" id="psub-${i}" onclick="seekToSub(${i})">
+      <div class="time">${s.start_time||formatMs(s.start_ms)}</div>
+      <div>
+        <div class="text">${escapeHtml(s.text)}</div>
+        ${s.pronunciation?'<div class="pronunciation">'+escapeHtml(s.pronunciation)+'</div>':''}
+        ${s.korean?'<div class="korean">'+escapeHtml(s.korean)+'</div>':''}
+      </div>
+    </div>`).join('');
+}
+
+function seekToSub(i) {
+  if(i<0||i>=currentSubs.length)return;
+  repeatCount=0;
+  if(ytPlayer&&ytReady){ytPlayer.seekTo(currentSubs[i].start_ms/1000,true);ytPlayer.playVideo();}
+  highlightSub(i);
+}
+function prevSub(){seekToSub(Math.max(0,currentSubIndex-1));}
+function nextSub(){seekToSub(Math.min(currentSubs.length-1,currentSubIndex+1));}
+
+function highlightSub(i) {
+  if(currentSubIndex===i)return;
+  const prev=document.getElementById('psub-'+currentSubIndex);
+  if(prev)prev.classList.remove('active');
+  currentSubIndex=i;
+  const curr=document.getElementById('psub-'+i);
+  if(curr){curr.classList.add('active');}
+  updateOverlay(i);
+}
+
+function updateOverlay(i) {
+  const ov=document.getElementById('subOverlay');
+  if(i<0||i>=currentSubs.length){ov.classList.add('empty');return;}
+  const sub=currentSubs[i];
+  document.getElementById('overlayText').textContent=sub.text||'';
+  document.getElementById('overlayPronun').textContent=sub.pronunciation||'';
+  document.getElementById('overlayKorean').textContent=sub.korean||'';
+  ov.classList.remove('empty');
+}
+
+function togglePlay() {
+  if(!ytPlayer||!ytReady)return;
+  if(ytPlayer.getPlayerState()===YT.PlayerState.PLAYING){ytPlayer.pauseVideo();}
+  else{ytPlayer.playVideo();}
+}
+
+function updatePlayBtn() {
+  const btn=document.getElementById('playBtn');
+  if(!btn||!ytPlayer||!ytReady)return;
+  btn.textContent=ytPlayer.getPlayerState()===YT.PlayerState.PLAYING?'⏸ 정지':'▶ 재생';
+}
+
+function changeSpeed(d) {
+  playbackRate=Math.max(0.25,Math.min(2.0,playbackRate+d));
+  document.getElementById('speedDisplay').textContent=playbackRate.toFixed(2)+'x';
+  if(ytPlayer&&ytReady)ytPlayer.setPlaybackRate(playbackRate);
+}
+function toggleRepeat() {
+  isRepeat=!isRepeat; repeatCount=0;
+  document.getElementById('repeatBtn').classList.toggle('active',isRepeat);
+}
+function onRepeatCountChange(){repeatMax=parseInt(document.getElementById('repeatCount').value);}
+
+// ─── YouTube IFrame ───
+function destroyYT() {
+  stopTimeUpdate(); stopLearnTimeUpdate();
+  if(ytPlayer){try{ytPlayer.destroy();}catch(e){}} ytPlayer=null; ytReady=false;
+  // Clean hidden player too
+  const hp=document.getElementById('hiddenPlayer');
+  if(hp)hp.remove();
+}
+
+function initYouTube(videoId) {
+  // Remove hidden player if exists
+  const hp=document.getElementById('hiddenPlayer');
+  if(hp)hp.remove();
+
+  if(ytPlayer&&ytReady){
+    // Reuse — re-embed in player wrap
+    try{ytPlayer.destroy();}catch(e){}
+    ytPlayer=null;ytReady=false;
+  }
+
+  const container=document.getElementById('ytPlayer');
+  container.innerHTML='<div id="ytPlayerInner"></div>';
+
+  if(!window.YT){
+    const tag=document.createElement('script');
+    tag.src='https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+    window._ytPendingId=videoId;
+    window._ytPendingMode='player';
+  } else {
+    _createYTPlayer(videoId);
+  }
+}
+
+function _createYTPlayer(videoId) {
+  ytPlayer=new YT.Player('ytPlayerInner',{
+    videoId,
+    playerVars:{autoplay:0,cc_load_policy:0,modestbranding:1,rel:0},
+    events:{
+      onReady:()=>{ytReady=true;ytPlayer.setPlaybackRate(playbackRate);},
+      onStateChange:(e)=>{e.data===YT.PlayerState.PLAYING?startTimeUpdate():stopTimeUpdate();updatePlayBtn();}
+    }
+  });
+}
+
+window.onYouTubeIframeAPIReady=function(){
+  const vid=window._ytPendingId||'';
+  const mode=window._ytPendingMode||'player';
+  if(mode==='learn') _createHiddenPlayer(vid);
+  else _createYTPlayer(vid);
+};
+
+function startTimeUpdate() {
+  stopTimeUpdate();
+  timeUpdateInterval=setInterval(()=>{
+    if(!ytPlayer||!ytReady)return;
+    const ct=ytPlayer.getCurrentTime()*1000;
+    for(let i=0;i<currentSubs.length;i++){
+      if(ct>=currentSubs[i].start_ms&&ct<currentSubs[i].end_ms){highlightSub(i);break;}
+    }
+    if(isRepeat&&currentSubIndex>=0){
+      const sub=currentSubs[currentSubIndex];
+      if(ct>=sub.end_ms){
+        if(repeatMax===0){ytPlayer.seekTo(sub.start_ms/1000,true);}
+        else{repeatCount++;if(repeatCount<repeatMax){ytPlayer.seekTo(sub.start_ms/1000,true);}else{repeatCount=0;if(currentSubIndex<currentSubs.length-1)seekToSub(currentSubIndex+1);}}
       }
     }
+  },100);
+}
+function stopTimeUpdate(){if(timeUpdateInterval){clearInterval(timeUpdateInterval);timeUpdateInterval=null;}}
 
-    function resetTranslateUI() {
-      isTranslating = false;
-      abortController = null;
-      stopBtn.classList.add('hidden');
-      translateBtn.classList.remove('hidden');
+// ═══ PAGE 3: Learn ═══
+async function loadLearn(videoId, provider) {
+  currentVideoId=videoId; currentProvider=provider;
+  setStatus('<span class="spinner"></span>자막 로딩 중...','loading');
+  try {
+    const res=await fetch('/api/translations/'+videoId);
+    if(!res.ok)throw new Error('Load failed');
+    const json=await res.json();
+    const items=json.data||[];
+    const found=items.find(i=>i.provider===provider)||items[0];
+    if(!found)throw new Error('저장된 번역이 없습니다');
+    learnSubs=found.subtitles; currentProvider=found.provider;
+    learnIndex=0; learnRepeatCount=0; learnPlaying=false;
+    document.getElementById('learnTitle').textContent=(found.title||videoId)+' — 발음 학습';
+    document.getElementById('learnPlayBtn').textContent='▶ 재생';
+    setStatus('','');
+    renderLearnCard();
+    initLearnAudio(videoId);
+  } catch(e){ setStatus('로드 실패: '+e.message,'error'); }
+}
+
+function renderLearnCard() {
+  if(!learnSubs.length)return;
+  const sub=learnSubs[learnIndex];
+  document.getElementById('learnEng').textContent=sub.text||'';
+  document.getElementById('learnPronun').textContent=sub.pronunciation||'(발음 없음)';
+  document.getElementById('learnKorean').textContent=sub.korean||'(번역 없음)';
+  const ee=document.getElementById('learnEng'),pe=document.getElementById('learnPronun'),ke=document.getElementById('learnKorean');
+  document.getElementById('autoRevealEng').checked?ee.classList.remove('blur'):ee.classList.add('blur');
+  document.getElementById('autoRevealPronun').checked?pe.classList.remove('blur'):pe.classList.add('blur');
+  document.getElementById('autoRevealKorean').checked?ke.classList.remove('blur'):ke.classList.add('blur');
+  document.getElementById('learnProgressText').textContent=(learnIndex+1)+' / '+learnSubs.length;
+  document.getElementById('learnProgressFill').style.width=((learnIndex+1)/learnSubs.length*100)+'%';
+}
+
+function learnPrev(){if(learnIndex>0){learnIndex--;learnRepeatCount=0;renderLearnCard();if(learnPlaying)learnPlayCurrent();}}
+function learnNext(){if(learnIndex<learnSubs.length-1){learnIndex++;learnRepeatCount=0;renderLearnCard();if(learnPlaying)learnPlayCurrent();}}
+
+function learnPlayToggle(){learnPlaying?learnStop():learnPlayCurrent();}
+
+function learnPlayCurrent() {
+  if(!ytPlayer||!ytReady||!learnSubs.length)return;
+  const sub=learnSubs[learnIndex];
+  ytPlayer.seekTo(sub.start_ms/1000,true);
+  ytPlayer.setPlaybackRate(learnRate);
+  ytPlayer.playVideo();
+  learnPlaying=true;
+  document.getElementById('learnPlayBtn').textContent='⏸ 정지';
+  startLearnTimeUpdate();
+}
+
+function learnStop() {
+  if(ytPlayer&&ytReady)ytPlayer.pauseVideo();
+  learnPlaying=false;
+  document.getElementById('learnPlayBtn').textContent='▶ 재생';
+  stopLearnTimeUpdate();
+}
+
+function startLearnTimeUpdate() {
+  stopLearnTimeUpdate();
+  learnTimeInterval=setInterval(()=>{
+    if(!ytPlayer||!ytReady||!learnSubs.length)return;
+    const ct=ytPlayer.getCurrentTime()*1000;
+    const sub=learnSubs[learnIndex];
+    if(ct>=sub.end_ms||ct<sub.start_ms-500){
+      const lrm=parseInt(document.getElementById('learnRepeatCount').value);
+      if(learnRepeat){
+        if(lrm===0){ytPlayer.seekTo(sub.start_ms/1000,true);}
+        else{learnRepeatCount++;if(learnRepeatCount<lrm){ytPlayer.seekTo(sub.start_ms/1000,true);}else{learnRepeatCount=0;autoAdvance();}}
+      } else { autoAdvance(); }
     }
+  },100);
+}
+function stopLearnTimeUpdate(){if(learnTimeInterval){clearInterval(learnTimeInterval);learnTimeInterval=null;}}
 
-    function stopTranslate() {
-      if (abortController) {
-        abortController.abort();
-      }
+function autoAdvance() {
+  if(document.getElementById('autoNext').checked&&learnIndex<learnSubs.length-1){
+    learnIndex++;renderLearnCard();learnPlayCurrent();
+  } else { learnStop(); }
+}
+
+function learnChangeSpeed(d) {
+  learnRate=Math.max(0.25,Math.min(2.0,learnRate+d));
+  document.getElementById('learnSpeedDisplay').textContent=learnRate.toFixed(2)+'x';
+  if(ytPlayer&&ytReady)ytPlayer.setPlaybackRate(learnRate);
+}
+function learnToggleRepeat() {
+  learnRepeat=!learnRepeat; learnRepeatCount=0;
+  document.getElementById('learnRepeatBtn').classList.toggle('active',learnRepeat);
+}
+
+function initLearnAudio(videoId) {
+  // Destroy visible player, use hidden one
+  if(ytPlayer){try{ytPlayer.destroy();}catch(e){}} ytPlayer=null;ytReady=false;
+  const visContainer=document.getElementById('ytPlayer');
+  if(visContainer)visContainer.innerHTML='';
+
+  let hp=document.getElementById('hiddenPlayer');
+  if(!hp){
+    hp=document.createElement('div');
+    hp.id='hiddenPlayer';
+    hp.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;';
+    document.body.appendChild(hp);
+  }
+  hp.innerHTML='<div id="ytPlayerHidden"></div>';
+
+  if(!window.YT){
+    const tag=document.createElement('script');
+    tag.src='https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+    window._ytPendingId=videoId;
+    window._ytPendingMode='learn';
+  } else {
+    _createHiddenPlayer(videoId);
+  }
+}
+
+function _createHiddenPlayer(videoId) {
+  ytPlayer=new YT.Player('ytPlayerHidden',{
+    videoId,
+    playerVars:{autoplay:0},
+    events:{onReady:()=>{ytReady=true;ytPlayer.setPlaybackRate(learnRate);}}
+  });
+}
+
+// ═══ Keyboard Shortcuts ═══
+document.addEventListener('keydown',(e)=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA')return;
+  const{parts}=parseRoute();
+
+  if(parts[0]==='learn'){
+    switch(e.key){
+      case ' ':e.preventDefault();learnPlayToggle();break;
+      case 'ArrowLeft':e.preventDefault();learnPrev();break;
+      case 'ArrowRight':e.preventDefault();learnNext();break;
+      case 'r':case 'R':learnToggleRepeat();break;
+      case 'p':case 'P':document.getElementById('learnPronun').classList.toggle('blur');break;
+      case 'k':case 'K':document.getElementById('learnKorean').classList.toggle('blur');break;
+      case '-':case '_':learnChangeSpeed(-0.25);break;
+      case '=':case '+':learnChangeSpeed(0.25);break;
     }
-
-    async function extract() {
-      const url = urlInput.value.trim();
-      if (!url) return;
-
-      extractBtn.disabled = true;
-      translateBtn.disabled = true;
-      isTranslated = false;
-      originalSubtitles = null;
-      saveBtn.classList.add('hidden');
-      result.classList.remove('visible');
-      status.className = 'status loading';
-      status.innerHTML = '<span class="spinner"></span>자막 추출 중... (10~30초 소요)';
-
-      try {
-        const res = await fetch('/api/subtitles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          const msg = err.detail;
-          throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
-        }
-
-        const data = await res.json();
-        lastData = data;
-        originalSubtitles = JSON.parse(JSON.stringify(data.subtitles));
-        status.className = 'status';
-
-        document.getElementById('videoTitle').textContent = data.title || data.video_id;
-        document.getElementById('subtitleCount').textContent = `${data.subtitle_count}개 자막`;
-        translateBtn.textContent = '번역하기';
-        translateBtn.disabled = false;
-        lastUsedProvider = null;
-
-        renderSubtitles(data);
-        result.classList.add('visible');
-      } catch (e) {
-        status.className = 'status error';
-        status.textContent = e.message;
-      } finally {
-        extractBtn.disabled = false;
-      }
+  } else if(parts[0]==='player'){
+    switch(e.key){
+      case ' ':e.preventDefault();if(ytPlayer&&ytReady){ytPlayer.getPlayerState()===YT.PlayerState.PLAYING?ytPlayer.pauseVideo():ytPlayer.playVideo();}break;
+      case 'ArrowLeft':e.preventDefault();prevSub();break;
+      case 'ArrowRight':e.preventDefault();nextSub();break;
+      case 'r':case 'R':toggleRepeat();break;
+      case '-':case '_':changeSpeed(-0.25);break;
+      case '=':case '+':changeSpeed(0.25);break;
     }
+  }
+});
 
-    async function doTranslate() {
-      if (!lastData || isTranslating) return;
-      if (isTranslated) return;
-
-      const apiKey = document.getElementById('apiKeyInput').value.trim();
-      const provider = document.getElementById('providerSelect').value;
-      if (!apiKey) {
-        status.className = 'status error';
-        status.textContent = `${providerConfig[provider].label} API Key를 입력해주세요.`;
-        return;
-      }
-
-      // 재번역 시 원본 자막으로 복원 후 다시 렌더링
-      if (originalSubtitles) {
-        lastData.subtitles = JSON.parse(JSON.stringify(originalSubtitles));
-        renderSubtitles(lastData);
-      }
-
-      isTranslating = true;
-      abortController = new AbortController();
-      translateBtn.classList.add('hidden');
-      stopBtn.classList.remove('hidden');
-      const progressContainer = document.getElementById('progressContainer');
-      const progressBar = document.getElementById('progressBar');
-      progressContainer.classList.add('visible');
-      progressBar.style.width = '0%';
-      status.className = 'status loading';
-      const providerLabel = providerConfig[provider].label;
-      status.innerHTML = `<span class="spinner"></span>${providerLabel}로 번역 중... (0%)`;
-
-      try {
-        const res = await fetch('/api/translate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            video_id: lastData.video_id,
-            title: lastData.title,
-            api_key: apiKey,
-            provider: provider,
-            subtitles: originalSubtitles || lastData.subtitles,
-          }),
-          signal: abortController.signal,
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          const msg = err.detail;
-          throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let failedBatches = 0;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop();
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const payload = line.slice(6).trim();
-            if (payload === '[DONE]') {
-              isTranslated = true;
-              lastUsedProvider = provider;
-              progressBar.style.width = '100%';
-              if (failedBatches > 0) {
-                status.className = 'status error';
-                status.textContent = `번역 완료 (${failedBatches}개 배치 실패)`;
-                translateBtn.textContent = '번역 완료 (일부 실패)';
-              } else {
-                status.className = 'status';
-                status.innerHTML = '';
-                translateBtn.textContent = '번역 완료';
-              }
-              translateBtn.disabled = true;
-              saveBtn.classList.remove('hidden');
-              setTimeout(() => {
-                progressContainer.classList.remove('visible');
-              }, 1000);
-              continue;
-            }
-
-            const data = JSON.parse(payload);
-            if (data.error) {
-              throw new Error(data.error);
-            }
-
-            const pct = Math.round((data.batch / data.total) * 100);
-            progressBar.style.width = pct + '%';
-
-            if (data.failed) {
-              failedBatches++;
-              status.innerHTML = `<span class="spinner"></span>${providerLabel}로 번역 중... (${data.batch}/${data.total} 배치 - ${pct}%) <span style="color:#ff7b7b;">⚠ 배치 ${data.batch} 실패</span>`;
-              for (const entry of data.entries) {
-                markSubtitleFailed(entry, data.error_msg || 'API 호출 실패');
-              }
-            } else {
-              status.innerHTML = `<span class="spinner"></span>${providerLabel}로 번역 중... (${data.batch}/${data.total} 배치 - ${pct}%)`;
-              for (const entry of data.entries) {
-                const idx = lastData.subtitles.findIndex(s => s.index === entry.index);
-                if (idx !== -1) {
-                  lastData.subtitles[idx] = entry;
-                }
-                updateSubtitleItem(entry);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        if (e.name === 'AbortError') {
-          status.className = 'status warn';
-          status.textContent = '번역이 중지되었습니다.';
-          translateBtn.textContent = '번역하기';
-          translateBtn.disabled = false;
-          isTranslated = false;
-        } else {
-          status.className = 'status error';
-          status.textContent = e.message;
-          translateBtn.textContent = '번역하기';
-          translateBtn.disabled = false;
-        }
-        progressContainer.classList.remove('visible');
-      } finally {
-        resetTranslateUI();
-      }
-    }
-
-    function copyJson() {
-      if (!lastData) return;
-      const json = JSON.stringify(lastData, null, 2);
-      const btn = document.querySelector('.tool-btn');
-      try {
-        const textarea = document.createElement('textarea');
-        textarea.value = json;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        btn.textContent = '복사 완료';
-      } catch {
-        btn.textContent = '복사 실패';
-      }
-      setTimeout(() => btn.textContent = 'JSON 복사', 1500);
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // ─── Supabase 저장/불러오기 ───
-
-    async function saveToSupabase() {
-      if (!lastData || !isTranslated) return;
-      const provider = document.getElementById('providerSelect').value;
-
-      saveBtn.disabled = true;
-      saveBtn.textContent = '저장 중...';
-
-      try {
-        const res = await fetch('/api/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            video_id: lastData.video_id,
-            title: lastData.title,
-            provider: provider,
-            subtitles: lastData.subtitles,
-          }),
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || 'Save failed');
-        }
-        saveBtn.textContent = '저장 완료';
-        setTimeout(() => {
-          saveBtn.textContent = 'DB 저장';
-          saveBtn.disabled = false;
-        }, 2000);
-        loadHistory();
-      } catch (e) {
-        status.className = 'status error';
-        status.textContent = `저장 실패: ${e.message}`;
-        saveBtn.textContent = 'DB 저장';
-        saveBtn.disabled = false;
-      }
-    }
-
-    async function loadHistory() {
-      try {
-        const res = await fetch('/api/history');
-        if (!res.ok) return;
-        const json = await res.json();
-        const items = json.data || [];
-        const panel = document.getElementById('historyPanel');
-        const list = document.getElementById('historyList');
-
-        if (items.length === 0) {
-          panel.classList.remove('visible');
-          return;
-        }
-
-        list.innerHTML = items.map(item => {
-          const date = new Date(item.updated_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-          return `
-            <div class="history-item" onclick="loadTranslation('${item.video_id}', '${item.provider}')">
-              <span class="hi-title">${escapeHtml(item.title || item.video_id)}</span>
-              <span class="hi-meta">
-                <span class="provider-badge">${escapeHtml(item.provider)}</span>
-                <span>${date}</span>
-              </span>
-            </div>`;
-        }).join('');
-        panel.classList.add('visible');
-      } catch (e) {
-        // silent fail
-      }
-    }
-
-    async function loadTranslation(videoId, provider) {
-      status.className = 'status loading';
-      status.innerHTML = '<span class="spinner"></span>저장된 번역 불러오는 중...';
-
-      try {
-        const res = await fetch(`/api/translations/${videoId}`);
-        if (!res.ok) throw new Error('Load failed');
-        const json = await res.json();
-        const items = json.data || [];
-
-        // 해당 provider의 번역 찾기
-        const found = items.find(i => i.provider === provider) || items[0];
-        if (!found) throw new Error('No saved translation found');
-
-        lastData = {
-          video_id: found.video_id,
-          title: found.title,
-          subtitle_count: found.subtitles.length,
-          subtitles: found.subtitles,
-        };
-        originalSubtitles = null;
-        isTranslated = true;
-        lastUsedProvider = found.provider;
-
-        document.getElementById('videoTitle').textContent = found.title || found.video_id;
-        document.getElementById('subtitleCount').textContent = `${found.subtitles.length}개 자막 (DB)`;
-        translateBtn.textContent = '번역 완료 (DB)';
-        translateBtn.disabled = true;
-        saveBtn.classList.add('hidden');
-
-        // provider select 맞추기
-        document.getElementById('providerSelect').value = found.provider;
-
-        renderSubtitles(lastData);
-        result.classList.add('visible');
-        status.className = 'status';
-        status.innerHTML = '';
-      } catch (e) {
-        status.className = 'status error';
-        status.textContent = `불러오기 실패: ${e.message}`;
-      }
-    }
-
-    // 페이지 로드 시 히스토리 불러오기
-    loadHistory();
-  </script>
+// ═══ Init ═══
+route();
+</script>
 </body>
 </html>
