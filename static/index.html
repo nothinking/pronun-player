@@ -702,7 +702,7 @@
         document.getElementById('subtitleCount').textContent = `${found.subtitles.length}개 자막 (DB)`;
         translateBtn.textContent = '번역 완료 (DB)';
         translateBtn.disabled = true;
-        saveBtn.classList.remove('hidden');
+        saveBtn.classList.add('hidden');
 
         // provider select 맞추기
         document.getElementById('providerSelect').value = found.provider;
