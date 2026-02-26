@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: pronun-player
+    runtime: docker
+    repo: https://github.com/nothinking/pronun-player
+    branch: main
+    plan: free
+    healthCheckPath: /health
