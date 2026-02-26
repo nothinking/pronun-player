@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Subtitle Extractor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e1e1e1;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .desc {
+      color: #888;
+      margin-bottom: 32px;
+      font-size: 14px;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    input[type="text"], input[type="password"] {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #e1e1e1;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="password"]:focus { border-color: #ff4444; }
+    input[type="text"]::placeholder, input[type="password"]::placeholder { color: #555; }
+    select {
+      padding: 12px 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #e1e1e1;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+      min-width: 100px;
+    }
+    select:focus { border-color: #ff4444; }
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      background: #ff4444;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    button:hover { background: #e03333; }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      display: none;
+    }
+    .status.loading {
+      display: block;
+      background: #1a1a2e;
+      color: #7b8cff;
+      border: 1px solid #2a2a4e;
+    }
+    .status.error {
+      display: block;
+      background: #2e1a1a;
+      color: #ff7b7b;
+      border: 1px solid #4e2a2a;
+    }
+    .status.warn {
+      display: block;
+      background: #2e2a1a;
+      color: #ffcc7b;
+      border: 1px solid #4e3a2a;
+    }
+    .result { display: none; }
+    .result.visible { display: block; }
+    .meta {
+      display: flex;
+      gap: 16px;
+      align-items: baseline;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .meta h2 { font-size: 18px; font-weight: 600; }
+    .meta span { font-size: 13px; color: #888; }
+    .subtitle-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .subtitle-item {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 16px;
+      padding: 12px 16px;
+      border-radius: 6px;
+      background: #1a1a1a;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .subtitle-item:hover { background: #222; }
+    .time {
+      color: #888;
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 12px;
+      padding-top: 2px;
+    }
+    .text { color: #e1e1e1; }
+    .pronunciation { color: #7b8cff; font-size: 13px; margin-top: 4px; }
+    .korean { color: #88cc88; font-size: 13px; margin-top: 2px; }
+    .subtitle-item.failed { border-left: 3px solid #ff4444; }
+    .fail-tag {
+      display: inline-block;
+      font-size: 11px;
+      color: #ff7b7b;
+      background: #2e1a1a;
+      border: 1px solid #4e2a2a;
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-top: 4px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tool-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      background: #222;
+      border: 1px solid #333;
+      color: #aaa;
+    }
+    .tool-btn:hover { background: #2a2a2a; border-color: #444; color: #e1e1e1; }
+    .translate-btn { background: #1a2e1a; border-color: #2a4e2a; color: #88cc88; }
+    .translate-btn:hover { background: #224422; border-color: #3a6e3a; color: #aaddaa; }
+    .translate-btn:disabled { background: #1a1a1a; border-color: #333; color: #555; }
+    .stop-btn { background: #2e1a1a; border-color: #4e2a2a; color: #ff7b7b; }
+    .stop-btn:hover { background: #3e2222; border-color: #6e3a3a; color: #ffaaaa; }
+    .save-btn { background: #1a1a2e; border-color: #2a2a4e; color: #7b8cff; }
+    .save-btn:hover { background: #222244; border-color: #3a3a6e; color: #aabbff; }
+    .save-btn:disabled { background: #1a1a1a; border-color: #333; color: #555; }
+    .history-panel {
+      margin-bottom: 24px;
+      display: none;
+    }
+    .history-panel.visible { display: block; }
+    .history-panel h3 {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: #1a1a1a;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 13px;
+    }
+    .history-item:hover { background: #222; }
+    .history-item .hi-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 12px;
+    }
+    .history-item .hi-meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: #888;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .provider-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      background: #222;
+      border: 1px solid #333;
+      color: #aaa;
+    }
+    .hidden { display: none !important; }
+    .progress-bar-container {
+      width: 100%;
+      height: 4px;
+      background: #222;
+      border-radius: 2px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar-container.visible { display: block; }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #88cc88, #44aa44);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #7b8cff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>YouTube Subtitle Extractor</h1>
+    <p class="desc">YouTube URL을 입력하면 영어 자막을 JSON으로 추출합니다.</p>
+
+    <div class="input-group">
+      <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." autofocus>
+      <button id="extractBtn" onclick="extract()">추출</button>
+    </div>
+    <div class="input-group">
+      <select id="providerSelect" onchange="onProviderChange()">
+        <option value="gemini">Gemini</option>
+        <option value="groq">Groq</option>
+        <option value="openrouter">OpenRouter</option>
+        <option value="grok">Grok</option>
+        <option value="deepseek">DeepSeek</option>
+      </select>
+      <input type="password" id="apiKeyInput" placeholder="Gemini API Key (번역시 필요)" style="font-size:13px;">
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div class="history-panel" id="historyPanel">
+      <h3>최근 번역 기록</h3>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <div class="result" id="result">
+      <div class="meta">
+        <h2 id="videoTitle"></h2>
+        <span id="subtitleCount"></span>
+      </div>
+      <div class="toolbar">
+        <button class="tool-btn" onclick="copyJson()">JSON 복사</button>
+        <button class="tool-btn translate-btn" id="translateBtn" onclick="doTranslate()">번역하기</button>
+        <button class="tool-btn stop-btn hidden" id="stopBtn" onclick="stopTranslate()">번역 중지</button>
+        <button class="tool-btn save-btn hidden" id="saveBtn" onclick="saveToSupabase()">DB 저장</button>
+      </div>
+      <div class="progress-bar-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="subtitle-list" id="subtitleList"></div>
+    </div>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById('urlInput');
+    const extractBtn = document.getElementById('extractBtn');
+    const translateBtn = document.getElementById('translateBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
+
+    let lastData = null;
+    let originalSubtitles = null;  // 원본 자막 보관
+    let isTranslated = false;
+    let isTranslating = false;
+    let abortController = null;
+    let lastUsedProvider = null;
+
+    const providerConfig = {
+      gemini:     { placeholder: 'Gemini API Key', defaultKey: '', label: 'Gemini' },
+      groq:       { placeholder: 'Groq API Key (groq.com에서 발급)', defaultKey: '', label: 'Groq' },
+      openrouter: { placeholder: 'OpenRouter API Key (openrouter.ai에서 발급)', defaultKey: '', label: 'OpenRouter' },
+      grok:       { placeholder: 'Grok API Key (console.x.ai에서 발급)', defaultKey: '', label: 'Grok' },
+      deepseek:   { placeholder: 'DeepSeek API Key (platform.deepseek.com에서 발급)', defaultKey: '', label: 'DeepSeek' },
+    };
+
+    function onProviderChange() {
+      const provider = document.getElementById('providerSelect').value;
+      const apiKeyInput = document.getElementById('apiKeyInput');
+      const cfg = providerConfig[provider];
+      apiKeyInput.placeholder = cfg.placeholder;
+      apiKeyInput.value = cfg.defaultKey;
+
+      // provider가 바뀌면 다시 번역 가능하게
+      if (lastData && isTranslated && provider !== lastUsedProvider) {
+        isTranslated = false;
+        translateBtn.textContent = '번역하기';
+        translateBtn.disabled = false;
+        saveBtn.classList.add('hidden');
+      }
+    }
+
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') extract();
+    });
+
+    function renderSubtitles(data) {
+      const list = document.getElementById('subtitleList');
+      list.innerHTML = data.subtitles.map(s => buildSubtitleHtml(s)).join('');
+    }
+
+    function buildSubtitleHtml(s) {
+      let content = `<div class="text">${escapeHtml(s.text)}</div>`;
+      if (s.pronunciation) {
+        content += `<div class="pronunciation">${escapeHtml(s.pronunciation)}</div>`;
+      }
+      if (s.korean) {
+        content += `<div class="korean">${escapeHtml(s.korean)}</div>`;
+      }
+      return `
+        <div class="subtitle-item" id="sub-${s.index}">
+          <div class="time">${s.start_time} &rarr; ${s.end_time}</div>
+          <div>${content}</div>
+        </div>`;
+    }
+
+    function updateSubtitleItem(s) {
+      const el = document.getElementById('sub-' + s.index);
+      if (el) {
+        el.classList.remove('failed');
+        let content = `<div class="text">${escapeHtml(s.text)}</div>`;
+        if (s.pronunciation) {
+          content += `<div class="pronunciation">${escapeHtml(s.pronunciation)}</div>`;
+        }
+        if (s.korean) {
+          content += `<div class="korean">${escapeHtml(s.korean)}</div>`;
+        }
+        el.querySelector('div:last-child').innerHTML = content;
+        el.style.transition = 'background 0.3s';
+        el.style.background = '#1a2e1a';
+        setTimeout(() => { el.style.background = ''; }, 800);
+      }
+    }
+
+    function markSubtitleFailed(s, errorMsg) {
+      const el = document.getElementById('sub-' + s.index);
+      if (el) {
+        el.classList.add('failed');
+        let content = `<div class="text">${escapeHtml(s.text)}</div>`;
+        content += `<div class="fail-tag">번역 실패: ${escapeHtml(errorMsg)}</div>`;
+        el.querySelector('div:last-child').innerHTML = content;
+        el.style.transition = 'background 0.3s';
+        el.style.background = '#2e1a1a';
+        setTimeout(() => { el.style.background = ''; }, 1500);
+      }
+    }
+
+    function resetTranslateUI() {
+      isTranslating = false;
+      abortController = null;
+      stopBtn.classList.add('hidden');
+      translateBtn.classList.remove('hidden');
+    }
+
+    function stopTranslate() {
+      if (abortController) {
+        abortController.abort();
+      }
+    }
+
+    async function extract() {
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      extractBtn.disabled = true;
+      translateBtn.disabled = true;
+      isTranslated = false;
+      originalSubtitles = null;
+      saveBtn.classList.add('hidden');
+      result.classList.remove('visible');
+      status.className = 'status loading';
+      status.innerHTML = '<span class="spinner"></span>자막 추출 중... (10~30초 소요)';
+
+      try {
+        const res = await fetch('/api/subtitles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          const msg = err.detail;
+          throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        }
+
+        const data = await res.json();
+        lastData = data;
+        originalSubtitles = JSON.parse(JSON.stringify(data.subtitles));
+        status.className = 'status';
+
+        document.getElementById('videoTitle').textContent = data.title || data.video_id;
+        document.getElementById('subtitleCount').textContent = `${data.subtitle_count}개 자막`;
+        translateBtn.textContent = '번역하기';
+        translateBtn.disabled = false;
+        lastUsedProvider = null;
+
+        renderSubtitles(data);
+        result.classList.add('visible');
+      } catch (e) {
+        status.className = 'status error';
+        status.textContent = e.message;
+      } finally {
+        extractBtn.disabled = false;
+      }
+    }
+
+    async function doTranslate() {
+      if (!lastData || isTranslating) return;
+      if (isTranslated) return;
+
+      const apiKey = document.getElementById('apiKeyInput').value.trim();
+      const provider = document.getElementById('providerSelect').value;
+      if (!apiKey) {
+        status.className = 'status error';
+        status.textContent = `${providerConfig[provider].label} API Key를 입력해주세요.`;
+        return;
+      }
+
+      // 재번역 시 원본 자막으로 복원 후 다시 렌더링
+      if (originalSubtitles) {
+        lastData.subtitles = JSON.parse(JSON.stringify(originalSubtitles));
+        renderSubtitles(lastData);
+      }
+
+      isTranslating = true;
+      abortController = new AbortController();
+      translateBtn.classList.add('hidden');
+      stopBtn.classList.remove('hidden');
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      progressContainer.classList.add('visible');
+      progressBar.style.width = '0%';
+      status.className = 'status loading';
+      const providerLabel = providerConfig[provider].label;
+      status.innerHTML = `<span class="spinner"></span>${providerLabel}로 번역 중... (0%)`;
+
+      try {
+        const res = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            video_id: lastData.video_id,
+            title: lastData.title,
+            api_key: apiKey,
+            provider: provider,
+            subtitles: originalSubtitles || lastData.subtitles,
+          }),
+          signal: abortController.signal,
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          const msg = err.detail;
+          throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let failedBatches = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const payload = line.slice(6).trim();
+            if (payload === '[DONE]') {
+              isTranslated = true;
+              lastUsedProvider = provider;
+              progressBar.style.width = '100%';
+              if (failedBatches > 0) {
+                status.className = 'status error';
+                status.textContent = `번역 완료 (${failedBatches}개 배치 실패)`;
+                translateBtn.textContent = '번역 완료 (일부 실패)';
+              } else {
+                status.className = 'status';
+                status.innerHTML = '';
+                translateBtn.textContent = '번역 완료';
+              }
+              translateBtn.disabled = true;
+              saveBtn.classList.remove('hidden');
+              setTimeout(() => {
+                progressContainer.classList.remove('visible');
+              }, 1000);
+              continue;
+            }
+
+            const data = JSON.parse(payload);
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            const pct = Math.round((data.batch / data.total) * 100);
+            progressBar.style.width = pct + '%';
+
+            if (data.failed) {
+              failedBatches++;
+              status.innerHTML = `<span class="spinner"></span>${providerLabel}로 번역 중... (${data.batch}/${data.total} 배치 - ${pct}%) <span style="color:#ff7b7b;">⚠ 배치 ${data.batch} 실패</span>`;
+              for (const entry of data.entries) {
+                markSubtitleFailed(entry, data.error_msg || 'API 호출 실패');
+              }
+            } else {
+              status.innerHTML = `<span class="spinner"></span>${providerLabel}로 번역 중... (${data.batch}/${data.total} 배치 - ${pct}%)`;
+              for (const entry of data.entries) {
+                const idx = lastData.subtitles.findIndex(s => s.index === entry.index);
+                if (idx !== -1) {
+                  lastData.subtitles[idx] = entry;
+                }
+                updateSubtitleItem(entry);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          status.className = 'status warn';
+          status.textContent = '번역이 중지되었습니다.';
+          translateBtn.textContent = '번역하기';
+          translateBtn.disabled = false;
+          isTranslated = false;
+        } else {
+          status.className = 'status error';
+          status.textContent = e.message;
+          translateBtn.textContent = '번역하기';
+          translateBtn.disabled = false;
+        }
+        progressContainer.classList.remove('visible');
+      } finally {
+        resetTranslateUI();
+      }
+    }
+
+    function copyJson() {
+      if (!lastData) return;
+      const json = JSON.stringify(lastData, null, 2);
+      const btn = document.querySelector('.tool-btn');
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = json;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        btn.textContent = '복사 완료';
+      } catch {
+        btn.textContent = '복사 실패';
+      }
+      setTimeout(() => btn.textContent = 'JSON 복사', 1500);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ─── Supabase 저장/불러오기 ───
+
+    async function saveToSupabase() {
+      if (!lastData || !isTranslated) return;
+      const provider = document.getElementById('providerSelect').value;
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = '저장 중...';
+
+      try {
+        const res = await fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            video_id: lastData.video_id,
+            title: lastData.title,
+            provider: provider,
+            subtitles: lastData.subtitles,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Save failed');
+        }
+        saveBtn.textContent = '저장 완료';
+        setTimeout(() => {
+          saveBtn.textContent = 'DB 저장';
+          saveBtn.disabled = false;
+        }, 2000);
+        loadHistory();
+      } catch (e) {
+        status.className = 'status error';
+        status.textContent = `저장 실패: ${e.message}`;
+        saveBtn.textContent = 'DB 저장';
+        saveBtn.disabled = false;
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/history');
+        if (!res.ok) return;
+        const json = await res.json();
+        const items = json.data || [];
+        const panel = document.getElementById('historyPanel');
+        const list = document.getElementById('historyList');
+
+        if (items.length === 0) {
+          panel.classList.remove('visible');
+          return;
+        }
+
+        list.innerHTML = items.map(item => {
+          const date = new Date(item.updated_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          return `
+            <div class="history-item" onclick="loadTranslation('${item.video_id}', '${item.provider}')">
+              <span class="hi-title">${escapeHtml(item.title || item.video_id)}</span>
+              <span class="hi-meta">
+                <span class="provider-badge">${escapeHtml(item.provider)}</span>
+                <span>${date}</span>
+              </span>
+            </div>`;
+        }).join('');
+        panel.classList.add('visible');
+      } catch (e) {
+        // silent fail
+      }
+    }
+
+    async function loadTranslation(videoId, provider) {
+      status.className = 'status loading';
+      status.innerHTML = '<span class="spinner"></span>저장된 번역 불러오는 중...';
+
+      try {
+        const res = await fetch(`/api/translations/${videoId}`);
+        if (!res.ok) throw new Error('Load failed');
+        const json = await res.json();
+        const items = json.data || [];
+
+        // 해당 provider의 번역 찾기
+        const found = items.find(i => i.provider === provider) || items[0];
+        if (!found) throw new Error('No saved translation found');
+
+        lastData = {
+          video_id: found.video_id,
+          title: found.title,
+          subtitle_count: found.subtitles.length,
+          subtitles: found.subtitles,
+        };
+        originalSubtitles = null;
+        isTranslated = true;
+        lastUsedProvider = found.provider;
+
+        document.getElementById('videoTitle').textContent = found.title || found.video_id;
+        document.getElementById('subtitleCount').textContent = `${found.subtitles.length}개 자막 (DB)`;
+        translateBtn.textContent = '번역 완료 (DB)';
+        translateBtn.disabled = true;
+        saveBtn.classList.remove('hidden');
+
+        // provider select 맞추기
+        document.getElementById('providerSelect').value = found.provider;
+
+        renderSubtitles(lastData);
+        result.classList.add('visible');
+        status.className = 'status';
+        status.innerHTML = '';
+      } catch (e) {
+        status.className = 'status error';
+        status.textContent = `불러오기 실패: ${e.message}`;
+      }
+    }
+
+    // 페이지 로드 시 히스토리 불러오기
+    loadHistory();
+  </script>
+</body>
+</html>
